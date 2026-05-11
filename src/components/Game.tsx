@@ -4,7 +4,8 @@ import type { Game } from "@/lib/curriculum";
 export function GamePlayer({ game, onWin }: { game: Game; onWin: () => void }) {
   if (game.kind === "predict" || game.kind === "bug") return <ChoiceGame game={game} onWin={onWin} />;
   if (game.kind === "match") return <MatchGame game={game} onWin={onWin} />;
-  return <FillGame game={game} onWin={onWin} />;
+  if (game.kind === "fill") return <FillGame game={game} onWin={onWin} />;
+  return null;
 }
 
 function ChoiceGame({
