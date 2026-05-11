@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MODULES } from "@/lib/curriculum";
-import { ModuleView } from "@/components/ModuleView";
+import { ModuleView, type ModuleProgress } from "@/components/ModuleView";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -10,92 +10,189 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "CodeSafari is a fun, story-based JavaScript learning adventure for Kenyan and African children. Short modules, mini-games, live code, and friendly exercises.",
+          "CodeSafari is a fun, story-based JavaScript learning adventure for Kenyan and African children. 15 modules with games, exercises and quizzes.",
       },
       { property: "og:title", content: "CodeSafari — Learn JavaScript with Games" },
       {
         property: "og:description",
-        content: "Fun JavaScript adventure for African kids. Stories, games and live code.",
+        content: "Fun JavaScript adventure for African kids. Stories, games, quizzes and live code.",
       },
     ],
   }),
   component: Home,
 });
 
-type Progress = Record<string, { lesson: boolean; game: boolean; exercise: boolean }>;
+type Progress = Record<string, ModuleProgress>;
 
-const empty: Progress = Object.fromEntries(
-  MODULES.map((m) => [m.id, { lesson: false, game: false, exercise: false }]),
-);
+function emptyProgress(): Progress {
+  return Object.fromEntries(
+    MODULES.map((m) => [
+      m.id,
+      {
+        lesson: false,
+        game: false,
+        exercises: m.exercises.map(() => false),
+        quiz: false,
+      },
+    ]),
+  );
+}
+
+function moduleStars(p: ModuleProgress): number {
+  const exAll = p.exercises.length > 0 && p.exercises.every(Boolean);
+  return (
+    (p.lesson ? 1 : 0) + (p.game ? 1 : 0) + (exAll ? 1 : 0) + (p.quiz ? 1 : 0)
+  );
+}
 
 function Home() {
+  const [name, setName] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState("");
   const [active, setActive] = useState<string | null>(null);
-  const [progress, setProgress] = useState<Progress>(empty);
+  const [progress, setProgress] = useState<Progress>(emptyProgress);
 
+  // load name on first paint
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("codesafari-progress");
-      if (raw) setProgress({ ...empty, ...JSON.parse(raw) });
+      const n = localStorage.getItem("codesafari-name");
+      if (n) setName(n);
     } catch {
       /* ignore */
     }
   }, []);
 
+  // load progress whenever the active learner changes
   useEffect(() => {
-    localStorage.setItem("codesafari-progress", JSON.stringify(progress));
+    if (!name) return;
+    try {
+      const raw = localStorage.getItem(`codesafari-progress:${name}`);
+      const fresh = emptyProgress();
+      if (raw) {
+        const saved = JSON.parse(raw) as Progress;
+        for (const id of Object.keys(fresh)) {
+          if (saved[id]) {
+            fresh[id] = {
+              lesson: !!saved[id].lesson,
+              game: !!saved[id].game,
+              quiz: !!saved[id].quiz,
+              exercises: fresh[id].exercises.map((_, i) => !!saved[id].exercises?.[i]),
+            };
+          }
+        }
+      }
+      setProgress(fresh);
+    } catch {
+      setProgress(emptyProgress());
+    }
+  }, [name]);
+
+  useEffect(() => {
+    if (!name) return;
+    localStorage.setItem(`codesafari-progress:${name}`, JSON.stringify(progress));
+  }, [progress, name]);
+
+  const totals = useMemo(() => {
+    const maxPerModule = 4;
+    const total = MODULES.length * maxPerModule;
+    const done = Object.values(progress).reduce((n, p) => n + moduleStars(p), 0);
+    return { pct: Math.round((done / total) * 100), done, total };
   }, [progress]);
+
+  // ── Name gate ────────────────────────────────────────────────
+  if (!name) {
+    const submit = () => {
+      const trimmed = nameInput.trim().slice(0, 30);
+      if (trimmed.length < 2) return;
+      localStorage.setItem("codesafari-name", trimmed);
+      setName(trimmed);
+    };
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card rounded-3xl shadow-card p-6 sm:p-8 space-y-4">
+          <div className="text-center">
+            <div className="text-6xl">🦁</div>
+            <h1 className="text-3xl font-extrabold mt-2">Karibu CodeSafari!</h1>
+            <p className="text-muted-foreground mt-1">
+              Tell us your name so we can save your progress.
+            </p>
+          </div>
+          <input
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            placeholder="e.g. Amani"
+            maxLength={30}
+            className="w-full rounded-xl border-2 border-border bg-background p-3 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <button
+            onClick={submit}
+            disabled={nameInput.trim().length < 2}
+            className="w-full px-5 py-3 rounded-xl bg-primary text-primary-foreground font-extrabold pop shadow-fun disabled:opacity-50"
+          >
+            Start the safari →
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   const mod = MODULES.find((m) => m.id === active) ?? null;
 
   if (mod) {
-    const d = progress[mod.id];
-    const stage = !d.lesson ? "lesson" : !d.game ? "game" : "exercise";
     return (
       <ModuleView
         module={mod}
-        done={d}
         onBack={() => setActive(null)}
-        onComplete={() =>
-          setProgress((p) => ({ ...p, [mod.id]: { ...p[mod.id], [stage]: true } }))
+        progress={progress[mod.id]}
+        setProgress={(updater) =>
+          setProgress((all) => ({ ...all, [mod.id]: updater(all[mod.id]) }))
         }
       />
     );
   }
 
-  const totalDone = Object.values(progress).reduce(
-    (n, m) => n + (m.lesson ? 1 : 0) + (m.game ? 1 : 0) + (m.exercise ? 1 : 0),
-    0,
-  );
-  const totalSteps = MODULES.length * 3;
-  const pct = Math.round((totalDone / totalSteps) * 100);
-
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-8">
       <header className="rounded-3xl bg-sunset p-6 sm:p-10 shadow-fun text-primary-foreground relative overflow-hidden">
         <div className="absolute -top-6 -right-6 text-[140px] opacity-30 select-none">🦁</div>
-        <h1 className="text-3xl sm:text-5xl font-extrabold drop-shadow-sm">
-          CodeSafari 🦁
-        </h1>
-        <p className="mt-2 text-lg sm:text-xl opacity-95 max-w-2xl">
-          Karibu! Learn JavaScript the fun way — stories from the savanna, mini-games and code
-          you actually run. Built for clever kids in Kenya and across Africa.
-        </p>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-3xl sm:text-5xl font-extrabold drop-shadow-sm">
+              Habari, {name}! 👋
+            </h1>
+            <p className="mt-2 text-lg sm:text-xl opacity-95 max-w-2xl">
+              Learn JavaScript the fun way — 15 modules, mini-games, exercises and quizzes.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem("codesafari-name");
+              setName(null);
+              setNameInput("");
+            }}
+            className="text-xs font-bold bg-background/30 px-3 py-1.5 rounded-full pop"
+          >
+            Switch learner
+          </button>
+        </div>
         <div className="mt-4 bg-background/30 backdrop-blur rounded-full h-3 overflow-hidden max-w-md">
           <div
             className="h-full bg-success transition-all"
-            style={{ width: `${pct}%` }}
-            aria-label={`${pct}% complete`}
+            style={{ width: `${totals.pct}%` }}
+            aria-label={`${totals.pct}% complete`}
           />
         </div>
-        <p className="mt-1 text-sm opacity-90">{pct}% of the safari complete</p>
+        <p className="mt-1 text-sm opacity-90">
+          {totals.pct}% complete — {totals.done} / {totals.total} stars
+        </p>
       </header>
 
       <section>
         <h2 className="text-2xl font-extrabold mb-3">Pick a module</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {MODULES.map((m, idx) => {
-            const d = progress[m.id];
-            const stars = (d.lesson ? 1 : 0) + (d.game ? 1 : 0) + (d.exercise ? 1 : 0);
+            const p = progress[m.id];
+            const stars = moduleStars(p);
             return (
               <button
                 key={m.id}
@@ -104,13 +201,16 @@ function Home() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-4xl">{m.emoji}</span>
-                  <span className="text-sm font-bold opacity-70">#{idx + 1}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide bg-muted px-2 py-1 rounded-full">
+                    {m.level}
+                  </span>
                 </div>
                 <h3 className="font-extrabold mt-2">{m.title}</h3>
                 <p className="text-sm text-muted-foreground">{m.tagline}</p>
                 <div className="mt-3 text-lg">
                   {"⭐".repeat(stars)}
-                  <span className="opacity-30">{"⭐".repeat(3 - stars)}</span>
+                  <span className="opacity-30">{"⭐".repeat(4 - stars)}</span>
+                  <span className="text-xs ml-2 opacity-70">#{idx + 1}</span>
                 </div>
               </button>
             );
