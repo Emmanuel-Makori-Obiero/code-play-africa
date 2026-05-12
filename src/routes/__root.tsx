@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { LearnerProvider } from "@/lib/learner-context";
 
 function NotFoundComponent() {
   return (
