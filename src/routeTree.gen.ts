@@ -9,38 +9,110 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProgressRouteImport } from './routes/progress'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as CertificateRouteImport } from './routes/certificate'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ModulesIdRouteImport } from './routes/modules.$id'
 
+const ProgressRoute = ProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CertificateRoute = CertificateRouteImport.update({
+  id: '/certificate',
+  path: '/certificate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ModulesIdRoute = ModulesIdRouteImport.update({
+  id: '/modules/$id',
+  path: '/modules/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/certificate': typeof CertificateRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/progress': typeof ProgressRoute
+  '/modules/$id': typeof ModulesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/certificate': typeof CertificateRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/progress': typeof ProgressRoute
+  '/modules/$id': typeof ModulesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/certificate': typeof CertificateRoute
+  '/leaderboard': typeof LeaderboardRoute
+  '/progress': typeof ProgressRoute
+  '/modules/$id': typeof ModulesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/certificate'
+    | '/leaderboard'
+    | '/progress'
+    | '/modules/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/certificate' | '/leaderboard' | '/progress' | '/modules/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/certificate'
+    | '/leaderboard'
+    | '/progress'
+    | '/modules/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CertificateRoute: typeof CertificateRoute
+  LeaderboardRoute: typeof LeaderboardRoute
+  ProgressRoute: typeof ProgressRoute
+  ModulesIdRoute: typeof ModulesIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/progress': {
+      id: '/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof ProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/certificate': {
+      id: '/certificate'
+      path: '/certificate'
+      fullPath: '/certificate'
+      preLoaderRoute: typeof CertificateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +120,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/modules/$id': {
+      id: '/modules/$id'
+      path: '/modules/$id'
+      fullPath: '/modules/$id'
+      preLoaderRoute: typeof ModulesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CertificateRoute: CertificateRoute,
+  LeaderboardRoute: LeaderboardRoute,
+  ProgressRoute: ProgressRoute,
+  ModulesIdRoute: ModulesIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
