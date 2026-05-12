@@ -757,4 +757,147 @@ export const MODULES: Module[] = [
       },
     ],
   },
+  {
+    id: "dom",
+    emoji: "🌍",
+    title: "M16 — World of the DOM",
+    tagline: "Make web pages come alive with JavaScript",
+    level: "Advanced",
+    story:
+      "Your browser sees the page as a tree of boxes called the DOM (Document Object Model). With JavaScript you can grab any box, change it, add new ones, listen for clicks, and animate the page — like turning the Nairobi market on screen into something you can poke at.",
+    lesson: [
+      {
+        heading: "What is the DOM?",
+        body: "Every HTML tag becomes a node in a tree. `document` is the root. From there you can reach every element, change its text, attributes, classes and styles.",
+        code: `console.log(document.title);\nconsole.log(document.body.tagName);`,
+      },
+      {
+        heading: "Selecting elements",
+        body: "Use querySelector for the first match and querySelectorAll for all matches. CSS selectors work: '#id', '.class', 'tag', 'ul li.active'.",
+        code: `const btn = document.querySelector('#start');\nconst items = document.querySelectorAll('.item');\nitems.forEach(el => console.log(el.textContent));`,
+      },
+      {
+        heading: "Reading & changing content",
+        body: "textContent reads/sets safe text. innerHTML sets HTML (be careful — never inject untrusted strings). Use setAttribute for attributes.",
+        code: `const h1 = document.querySelector('h1');\nh1.textContent = 'Karibu!';\nh1.setAttribute('data-ready', 'yes');`,
+      },
+      {
+        heading: "Classes and styles",
+        body: "Use classList.add/remove/toggle to flip CSS classes. style.* for inline styles. Prefer classes over inline styles for design tokens.",
+        code: `const card = document.querySelector('.card');\ncard.classList.toggle('open');\ncard.style.transform = 'rotate(2deg)';`,
+      },
+      {
+        heading: "Creating & inserting nodes",
+        body: "createElement makes a new node. append/prepend/before/after place it. remove() takes one out.",
+        code: `const li = document.createElement('li');\nli.textContent = 'Mango';\ndocument.querySelector('ul').append(li);`,
+      },
+      {
+        heading: "Events: listen & react",
+        body: "addEventListener('click', handler) makes the page respond. Event objects carry info: event.target, event.key, event.preventDefault().",
+        code: `document.querySelector('#go').addEventListener('click', (e) => {\n  console.log('clicked', e.target.textContent);\n});`,
+      },
+      {
+        heading: "Forms & input",
+        body: "Read input.value, listen to 'input' or 'submit'. Call preventDefault on submit to handle it with JavaScript.",
+        code: `const f = document.querySelector('form');\nf.addEventListener('submit', (e) => {\n  e.preventDefault();\n  const name = f.querySelector('input').value;\n  console.log('Hi', name);\n});`,
+      },
+      {
+        heading: "Traversal",
+        body: "Every node knows its family: parentElement, children, nextElementSibling, previousElementSibling, closest('selector').",
+        code: `const item = document.querySelector('.item');\nconsole.log(item.parentElement.tagName);\nconsole.log(item.closest('ul'));`,
+      },
+      {
+        heading: "Event delegation",
+        body: "Attach ONE listener on a parent and use event.target to handle many children — fast, and it works for items added later.",
+        code: `document.querySelector('ul').addEventListener('click', (e) => {\n  if (e.target.matches('li')) console.log('picked', e.target.textContent);\n});`,
+      },
+    ],
+    game: {
+      kind: "predict",
+      code: `const d = document.createElement('div');\nd.textContent = 'hi';\nd.classList.add('a','b');\nconsole.log(d.tagName, d.className);`,
+      choices: ["DIV a b", "div a,b", "DIV a,b", "div a b"],
+      answer: 0,
+      explain: "tagName is uppercase. className is the classes joined with spaces.",
+    },
+    exercises: [
+      {
+        prompt: "Create a <p> with text 'Habari' and log its textContent.",
+        starter: `const p = document.createElement('p');\n// fill in...\nconsole.log(p.textContent);`,
+        expected: "Habari",
+        hint: "p.textContent = 'Habari';",
+      },
+      {
+        prompt: "Make a <ul> with three <li> mangoes, then log how many <li> it has.",
+        starter: `const ul = document.createElement('ul');\n// add three li elements\nconsole.log(ul.children.length);`,
+        expected: "3",
+        hint: "Loop 3 times: const li = document.createElement('li'); ul.append(li);",
+      },
+      {
+        prompt: "Toggle the class 'on' on a div twice and log classList.contains('on').",
+        starter: `const d = document.createElement('div');\n// toggle 'on' twice\nconsole.log(d.classList.contains('on'));`,
+        expected: "false",
+        hint: "Toggle twice → off again → false.",
+      },
+      {
+        prompt: "Attach a click listener to a button that logs 'clicked', then call button.click().",
+        starter: `const b = document.createElement('button');\n// add listener and click it\n`,
+        expected: "clicked",
+        hint: "b.addEventListener('click', () => console.log('clicked')); b.click();",
+      },
+      {
+        prompt: "Use event delegation: on a ul, log textContent of any clicked li. Append one li with text 'pick-me' and click it.",
+        starter: `const ul = document.createElement('ul');\n// delegate, append li, click li\n`,
+        expected: "pick-me",
+        hint: "li.click() triggers the listener on ul; check e.target.matches('li').",
+      },
+    ],
+    quiz: [
+      {
+        q: "Which method returns the FIRST element matching a CSS selector?",
+        choices: ["getElementsByTagName", "querySelector", "querySelectorAll", "selectFirst"],
+        answer: 1,
+        explain: "querySelector returns the first match (or null).",
+      },
+      {
+        q: "Which property safely sets plain text inside an element?",
+        choices: ["innerHTML", "outerHTML", "textContent", "value"],
+        answer: 2,
+        explain: "textContent sets text without parsing HTML — safer than innerHTML.",
+      },
+      {
+        q: "How do you stop a form from reloading the page on submit?",
+        choices: ["return false in HTML only", "event.stopPropagation()", "event.preventDefault()", "window.stop()"],
+        answer: 2,
+        explain: "preventDefault cancels the browser's default behavior.",
+      },
+      {
+        q: "What does element.classList.toggle('open') do?",
+        choices: [
+          "Always adds 'open'",
+          "Always removes 'open'",
+          "Adds it if missing, removes it if present",
+          "Renames the class to 'open'",
+        ],
+        answer: 2,
+        explain: "toggle flips the class on/off.",
+      },
+      {
+        q: "Why use event delegation?",
+        choices: [
+          "It's the only way to handle clicks",
+          "One listener handles many children, including future ones",
+          "It makes CSS faster",
+          "It avoids JavaScript entirely",
+        ],
+        answer: 1,
+        explain: "One parent listener handles many — including elements added later.",
+      },
+      {
+        q: "Which gives you the closest ancestor matching a selector?",
+        choices: ["parentElement", "closest()", "ancestor()", "querySelectorAll()"],
+        answer: 1,
+        explain: "element.closest('selector') walks up the tree.",
+      },
+    ],
+  },
 ];
