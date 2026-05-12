@@ -1,248 +1,252 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { MODULES } from "@/lib/curriculum";
-import { ModuleView, type ModuleProgress } from "@/components/ModuleView";
+import { useLearner } from "@/lib/learner-context";
+import {
+  emptyProgress,
+  moduleStars,
+  totalStars,
+  maxStars,
+  tierFor,
+  listLearners,
+  saveLearners,
+} from "@/lib/learner";
+import { NavBar } from "@/components/NavBar";
+import { LearnerSwitcher } from "@/components/LearnerSwitcher";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "CodeSafari — Learn JavaScript with Games (for African Kids)" },
+      { title: "CodeSafari — Learn JavaScript with Games" },
       {
         name: "description",
         content:
-          "CodeSafari is a fun, story-based JavaScript learning adventure for Kenyan and African children. 15 modules with games, exercises and quizzes.",
+          "An interactive JavaScript adventure for African learners. 16 modules, mini-games, exercises, quizzes, leaderboard and a printable certificate.",
       },
       { property: "og:title", content: "CodeSafari — Learn JavaScript with Games" },
       {
         property: "og:description",
-        content: "Fun JavaScript adventure for African kids. Stories, games, quizzes and live code.",
+        content: "Stories, games, quizzes and live code — built for fast learners.",
       },
     ],
   }),
   component: Home,
 });
 
-type Progress = Record<string, ModuleProgress>;
-
-function emptyProgress(): Progress {
-  return Object.fromEntries(
-    MODULES.map((m) => [
-      m.id,
-      {
-        lesson: false,
-        game: false,
-        exercises: m.exercises.map(() => false),
-        quiz: false,
-      },
-    ]),
-  );
-}
-
-function moduleStars(p: ModuleProgress): number {
-  const exAll = p.exercises.length > 0 && p.exercises.every(Boolean);
-  return (
-    (p.lesson ? 1 : 0) + (p.game ? 1 : 0) + (exAll ? 1 : 0) + (p.quiz ? 1 : 0)
-  );
-}
-
 function Home() {
-  const [name, setName] = useState<string | null>(null);
-  const [nameInput, setNameInput] = useState("");
-  const [active, setActive] = useState<string | null>(null);
-  const [progress, setProgress] = useState<Progress>(emptyProgress);
+  const { learner, setActive } = useLearner();
+  const [pickName, setPickName] = useState("");
+  const [switcher, setSwitcher] = useState(false);
+  const nav = useNavigate();
 
-  // load name on first paint
-  useEffect(() => {
-    try {
-      const n = localStorage.getItem("codesafari-name");
-      if (n) setName(n);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  // load progress whenever the active learner changes
-  useEffect(() => {
-    if (!name) return;
-    try {
-      const raw = localStorage.getItem(`codesafari-progress:${name}`);
-      const fresh = emptyProgress();
-      if (raw) {
-        const saved = JSON.parse(raw) as Progress;
-        for (const id of Object.keys(fresh)) {
-          if (saved[id]) {
-            fresh[id] = {
-              lesson: !!saved[id].lesson,
-              game: !!saved[id].game,
-              quiz: !!saved[id].quiz,
-              exercises: fresh[id].exercises.map((_, i) => !!saved[id].exercises?.[i]),
-            };
-          }
-        }
-      }
-      setProgress(fresh);
-    } catch {
-      setProgress(emptyProgress());
-    }
-  }, [name]);
-
-  useEffect(() => {
-    if (!name) return;
-    localStorage.setItem(`codesafari-progress:${name}`, JSON.stringify(progress));
-  }, [progress, name]);
-
-  const totals = useMemo(() => {
-    const maxPerModule = 4;
-    const total = MODULES.length * maxPerModule;
-    const done = Object.values(progress).reduce((n, p) => n + moduleStars(p), 0);
-    return { pct: Math.round((done / total) * 100), done, total };
-  }, [progress]);
-
-  // ── Name gate ────────────────────────────────────────────────
-  if (!name) {
+  // No learner yet → name gate
+  if (!learner) {
     const submit = () => {
-      const trimmed = nameInput.trim().slice(0, 30);
+      const trimmed = pickName.trim().slice(0, 30);
       if (trimmed.length < 2) return;
-      localStorage.setItem("codesafari-name", trimmed);
-      setName(trimmed);
+      const list = listLearners();
+      if (!list.includes(trimmed)) saveLearners([...list, trimmed]);
+      setActive(trimmed);
     };
+    const existing = listLearners();
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card rounded-3xl shadow-card p-6 sm:p-8 space-y-4">
+        <div className="glass border-grad rounded-3xl shadow-card p-7 sm:p-9 max-w-md w-full space-y-5">
           <div className="text-center">
-            <div className="text-6xl">🦁</div>
-            <h1 className="text-3xl font-extrabold mt-2">Karibu CodeSafari!</h1>
-            <p className="text-muted-foreground mt-1">
-              Tell us your name so we can save your progress.
+            <div className="text-xs uppercase tracking-[0.4em] text-neon">CodeSafari Academy</div>
+            <h1 className="text-3xl font-bold mt-2 text-glow">
+              Welcome, future engineer
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm">
+              Enter your name to start your JavaScript journey. Your progress, IQ
+              history and rank are saved on this device.
             </p>
           </div>
           <input
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
+            value={pickName}
+            onChange={(e) => setPickName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder="e.g. Amani"
             maxLength={30}
-            className="w-full rounded-xl border-2 border-border bg-background p-3 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-xl bg-input p-3 text-lg font-semibold border border-border focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <button
             onClick={submit}
-            disabled={nameInput.trim().length < 2}
-            className="w-full px-5 py-3 rounded-xl bg-primary text-primary-foreground font-extrabold pop shadow-fun disabled:opacity-50"
+            disabled={pickName.trim().length < 2}
+            className="w-full px-5 py-3 rounded-xl bg-neon text-primary-foreground font-bold pop disabled:opacity-50 shadow-neon"
           >
-            Start the safari →
+            Begin →
           </button>
+          {existing.length > 0 && (
+            <div className="text-center text-xs text-muted-foreground">
+              Returning learner?{" "}
+              <button
+                onClick={() => setSwitcher(true)}
+                className="underline hover:text-foreground"
+              >
+                Pick from saved profiles
+              </button>
+            </div>
+          )}
         </div>
+        {switcher && (
+          <LearnerSwitcher
+            current={null}
+            onPick={(n) => {
+              setActive(n);
+              setSwitcher(false);
+            }}
+            onClose={() => setSwitcher(false)}
+          />
+        )}
       </main>
     );
   }
 
-  const mod = MODULES.find((m) => m.id === active) ?? null;
-
-  if (mod) {
-    return (
-      <ModuleView
-        module={mod}
-        onBack={() => setActive(null)}
-        progress={progress[mod.id]}
-        setProgress={(updater) =>
-          setProgress((all) => ({ ...all, [mod.id]: updater(all[mod.id]) }))
-        }
-      />
-    );
-  }
+  const { progress } = learner;
+  const stars = totalStars(progress);
+  const max = maxStars();
+  const pct = Math.round((stars / max) * 100);
+  const tier = tierFor(stars);
 
   return (
-    <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-8">
-      <header className="rounded-3xl bg-sunset p-6 sm:p-10 shadow-fun text-primary-foreground relative overflow-hidden">
-        <div className="absolute -top-6 -right-6 text-[140px] opacity-30 select-none">🦁</div>
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-3xl sm:text-5xl font-extrabold drop-shadow-sm">
-              Habari, {name}! 👋
-            </h1>
-            <p className="mt-2 text-lg sm:text-xl opacity-95 max-w-2xl">
-              Learn JavaScript the fun way — 15 modules, mini-games, exercises and quizzes.
-            </p>
+    <>
+      <NavBar learnerName={learner.name} stars={stars} onSwitch={() => setSwitcher(true)} />
+      <main className="max-w-6xl mx-auto p-4 sm:p-8 space-y-8">
+        <header className="relative rounded-3xl bg-hero p-6 sm:p-10 shadow-card border border-border overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-neon opacity-20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-gold opacity-20 blur-3xl pointer-events-none" />
+          <div className="relative grid sm:grid-cols-[1fr_auto] gap-4 items-end">
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-neon">Mission Control</div>
+              <h1 className="text-3xl sm:text-5xl font-bold mt-2">
+                Habari, <span className="text-glow-warm">{learner.name}</span>
+              </h1>
+              <p className="mt-2 text-base sm:text-lg text-muted-foreground max-w-xl">
+                16 modules · mini-games, live coding, quizzes, fake-IQ boosts,
+                leaderboard and a printable certificate.
+              </p>
+            </div>
+            <div className="flex flex-col items-start sm:items-end gap-2">
+              <div className="glass rounded-2xl px-4 py-3 ring-neon">
+                <div className="text-[10px] uppercase tracking-wider text-neon">Current tier</div>
+                <div className="text-2xl font-bold mt-1">
+                  {tier.emoji} {tier.name}
+                </div>
+              </div>
+              <div className="glass rounded-2xl px-4 py-3">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Progress
+                </div>
+                <div className="text-2xl font-bold mt-1 tabular-nums">
+                  {pct}% · ⭐ {stars}/{max}
+                </div>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              localStorage.removeItem("codesafari-name");
-              setName(null);
-              setNameInput("");
-            }}
-            className="text-xs font-bold bg-background/30 px-3 py-1.5 rounded-full pop"
-          >
-            Switch learner
-          </button>
-        </div>
-        <div className="mt-4 bg-background/30 backdrop-blur rounded-full h-3 overflow-hidden max-w-md">
-          <div
-            className="h-full bg-success transition-all"
-            style={{ width: `${totals.pct}%` }}
-            aria-label={`${totals.pct}% complete`}
-          />
-        </div>
-        <p className="mt-1 text-sm opacity-90">
-          {totals.pct}% complete — {totals.done} / {totals.total} stars
-        </p>
-      </header>
+          <div className="relative mt-5 h-2 rounded-full bg-background/40 overflow-hidden">
+            <div
+              className="h-full bg-neon transition-all"
+              style={{ width: `${pct}%` }}
+              aria-label={`${pct}% complete`}
+            />
+          </div>
+        </header>
 
-      <section>
-        <h2 className="text-2xl font-extrabold mb-3">Pick a module</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {MODULES.map((m, idx) => {
-            const p = progress[m.id];
-            const stars = moduleStars(p);
-            return (
-              <button
-                key={m.id}
-                onClick={() => setActive(m.id)}
-                className="text-left bg-card rounded-2xl p-5 shadow-card pop border-2 border-border"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-4xl">{m.emoji}</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wide bg-muted px-2 py-1 rounded-full">
-                    {m.level}
-                  </span>
-                </div>
-                <h3 className="font-extrabold mt-2">{m.title}</h3>
-                <p className="text-sm text-muted-foreground">{m.tagline}</p>
-                <div className="mt-3 text-lg">
-                  {"⭐".repeat(stars)}
-                  <span className="opacity-30">{"⭐".repeat(4 - stars)}</span>
-                  <span className="text-xs ml-2 opacity-70">#{idx + 1}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+        <section>
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-xl font-bold">Modules</h2>
+            <span className="text-xs text-muted-foreground">
+              Difficulty adapts as you level up
+            </span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {MODULES.map((m, idx) => {
+              const p = progress[m.id] ?? emptyProgress()[m.id];
+              const s = moduleStars(p);
+              const locked = idx > 0 && totalStars(progress) < idx; // soft lock
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => nav({ to: "/modules/$id", params: { id: m.id } })}
+                  className="text-left glass rounded-2xl p-5 pop border-grad relative overflow-hidden group"
+                >
+                  <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-primary/20 blur-2xl group-hover:bg-primary/40 transition" />
+                  <div className="relative flex items-center justify-between">
+                    <span className="text-4xl">{m.emoji}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-card px-2 py-1 rounded-full border border-border">
+                      {m.level}
+                    </span>
+                  </div>
+                  <h3 className="font-bold mt-3 text-lg">{m.title}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{m.tagline}</p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="text-lg">
+                      {"⭐".repeat(s)}
+                      <span className="opacity-30">{"⭐".repeat(4 - s)}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {locked ? "🔒 soon" : `#${idx + 1}`}
+                    </span>
+                  </div>
+                  {p.iq && (
+                    <div className="mt-2 text-[11px] text-neon">
+                      Last IQ: <span className="font-bold tabular-nums">{p.iq}</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
-      <section className="bg-card rounded-2xl p-5 shadow-card">
-        <h2 className="text-xl font-extrabold">📥 Download the syllabus & source</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Teachers and parents can download a complete Word document explaining every lesson
-          and every line of source code, plus a zip of the project.
-        </p>
-        <div className="flex gap-3 mt-3 flex-wrap">
+        <section className="grid sm:grid-cols-3 gap-4">
           <a
             href="/downloads/CodeSafari-Syllabus.docx"
-            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold pop shadow-fun"
+            className="glass rounded-2xl p-5 pop block"
           >
-            📄 Syllabus (.docx)
+            <div className="text-2xl">📄</div>
+            <div className="font-bold mt-2">Syllabus (.docx)</div>
+            <div className="text-xs text-muted-foreground">
+              Full lesson plan with code walkthrough.
+            </div>
           </a>
           <a
             href="/downloads/CodeSafari-Source.zip"
-            className="px-4 py-2 rounded-xl bg-secondary text-secondary-foreground font-bold pop"
+            className="glass rounded-2xl p-5 pop block"
           >
-            🗂️ Source code (.zip)
+            <div className="text-2xl">🗂️</div>
+            <div className="font-bold mt-2">Source (.zip)</div>
+            <div className="text-xs text-muted-foreground">
+              Whole project source for teachers & devs.
+            </div>
           </a>
-        </div>
-      </section>
+          <button
+            onClick={() => nav({ to: "/certificate" })}
+            className="glass rounded-2xl p-5 pop text-left"
+          >
+            <div className="text-2xl">🏅</div>
+            <div className="font-bold mt-2">Your certificate</div>
+            <div className="text-xs text-muted-foreground">
+              View & print your achievement.
+            </div>
+          </button>
+        </section>
 
-      <footer className="text-center text-sm text-muted-foreground py-6">
-        Made with ❤️ for African coders. Asante sana!
-      </footer>
-    </main>
+        <footer className="text-center text-xs text-muted-foreground py-6">
+          Made with ❤️ for African coders. Asante sana.
+        </footer>
+      </main>
+      {switcher && (
+        <LearnerSwitcher
+          current={learner.name}
+          onPick={(n) => {
+            setActive(n);
+            setSwitcher(false);
+          }}
+          onClose={() => setSwitcher(false)}
+        />
+      )}
+    </>
   );
 }

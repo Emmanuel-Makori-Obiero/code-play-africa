@@ -1,7 +1,15 @@
 import { useState } from "react";
 import type { QuizQuestion } from "@/lib/curriculum";
 
-export function Quiz({ questions, onPass }: { questions: QuizQuestion[]; onPass: () => void }) {
+export function Quiz({
+  questions,
+  onPass,
+  onComplete,
+}: {
+  questions: QuizQuestion[];
+  onPass: () => void;
+  onComplete?: (scorePct: number) => void;
+}) {
   const [i, setI] = useState(0);
   const [pick, setPick] = useState<number | null>(null);
   const [score, setScore] = useState(0);
@@ -75,7 +83,11 @@ export function Quiz({ questions, onPass }: { questions: QuizQuestion[]; onPass:
               if (i + 1 >= questions.length) {
                 setScore(nextScore);
                 setDone(true);
-                if (nextScore >= Math.ceil(questions.length * 0.6)) onPass();
+                const pct = Math.round((nextScore / questions.length) * 100);
+                if (nextScore >= Math.ceil(questions.length * 0.6)) {
+                  onPass();
+                  onComplete?.(pct);
+                }
               } else {
                 setScore(nextScore);
                 setI(i + 1);

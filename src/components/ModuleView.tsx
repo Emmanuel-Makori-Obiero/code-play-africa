@@ -9,6 +9,8 @@ export type ModuleProgress = {
   game: boolean;
   exercises: boolean[];
   quiz: boolean;
+  quizScorePct?: number;
+  iq?: number;
 };
 
 export function ModuleView({
@@ -16,11 +18,13 @@ export function ModuleView({
   onBack,
   progress,
   setProgress,
+  onQuizComplete,
 }: {
   module: Module;
   onBack: () => void;
   progress: ModuleProgress;
   setProgress: (updater: (p: ModuleProgress) => ModuleProgress) => void;
+  onQuizComplete?: (scorePct: number) => void;
 }) {
   const [tab, setTab] = useState<"learn" | "play" | "do" | "quiz">("learn");
   const allEx = progress.exercises.every(Boolean);
@@ -36,14 +40,15 @@ export function ModuleView({
       <button onClick={onBack} className="text-sm font-bold pop">
         ← All modules
       </button>
-      <header className="rounded-3xl bg-sunset text-primary-foreground p-6 shadow-fun">
-        <div className="flex items-start justify-between gap-3">
+      <header className="relative rounded-3xl bg-hero text-foreground p-6 shadow-card border border-border overflow-hidden">
+        <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-neon opacity-20 blur-3xl pointer-events-none" />
+        <div className="relative flex items-start justify-between gap-3">
           <div>
-            <div className="text-5xl">{module.emoji}</div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold mt-2">{module.title}</h1>
-            <p className="opacity-95 mt-1">{module.tagline}</p>
+            <div className="text-5xl animate-float">{module.emoji}</div>
+            <h1 className="text-2xl sm:text-3xl font-bold mt-2">{module.title}</h1>
+            <p className="opacity-90 mt-1 text-muted-foreground">{module.tagline}</p>
           </div>
-          <span className="text-xs font-bold bg-background/30 px-2 py-1 rounded-full whitespace-nowrap">
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-card border border-border px-2 py-1 rounded-full whitespace-nowrap">
             {module.level}
           </span>
         </div>
@@ -56,8 +61,8 @@ export function ModuleView({
             onClick={() => setTab(t.id)}
             className={`px-3 py-2 rounded-xl font-bold pop text-sm ${
               tab === t.id
-                ? "bg-primary text-primary-foreground shadow-fun"
-                : "bg-card text-foreground border-2 border-border"
+                ? "bg-neon text-primary-foreground shadow-neon"
+                : "glass text-foreground"
             }`}
           >
             {t.done && "✅ "}
@@ -148,6 +153,7 @@ export function ModuleView({
           <Quiz
             questions={module.quiz}
             onPass={() => setProgress((p) => ({ ...p, quiz: true }))}
+            onComplete={onQuizComplete}
           />
         </section>
       )}
