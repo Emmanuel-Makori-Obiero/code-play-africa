@@ -83,7 +83,11 @@ export function Quiz({
               if (i + 1 >= questions.length) {
                 setScore(nextScore);
                 setDone(true);
-                if (nextScore >= Math.ceil(questions.length * 0.6)) onPass();
+                const pct = Math.round((nextScore / questions.length) * 100);
+                if (nextScore >= Math.ceil(questions.length * 0.6)) {
+                  onPass();
+                  onComplete?.(pct);
+                }
               } else {
                 setScore(nextScore);
                 setI(i + 1);

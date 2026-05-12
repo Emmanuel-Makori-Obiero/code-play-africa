@@ -16,11 +16,13 @@ export function ModuleView({
   onBack,
   progress,
   setProgress,
+  onQuizComplete,
 }: {
   module: Module;
   onBack: () => void;
   progress: ModuleProgress;
   setProgress: (updater: (p: ModuleProgress) => ModuleProgress) => void;
+  onQuizComplete?: (scorePct: number) => void;
 }) {
   const [tab, setTab] = useState<"learn" | "play" | "do" | "quiz">("learn");
   const allEx = progress.exercises.every(Boolean);
