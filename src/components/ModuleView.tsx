@@ -9,6 +9,8 @@ export type ModuleProgress = {
   game: boolean;
   exercises: boolean[];
   quiz: boolean;
+  quizScorePct?: number;
+  iq?: number;
 };
 
 export function ModuleView({
@@ -150,6 +152,7 @@ export function ModuleView({
           <Quiz
             questions={module.quiz}
             onPass={() => setProgress((p) => ({ ...p, quiz: true }))}
+            onComplete={onQuizComplete}
           />
         </section>
       )}
