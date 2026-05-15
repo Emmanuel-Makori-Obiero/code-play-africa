@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProgressRouteImport } from './routes/progress'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as CertificateRouteImport } from './routes/certificate'
 import { Route as IndexRouteImport } from './routes/index'
@@ -18,6 +19,11 @@ import { Route as ModulesIdRouteImport } from './routes/modules.$id'
 const ProgressRoute = ProgressRouteImport.update({
   id: '/progress',
   path: '/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardRoute = LeaderboardRouteImport.update({
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/certificate': typeof CertificateRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/portfolio': typeof PortfolioRoute
   '/progress': typeof ProgressRoute
   '/modules/$id': typeof ModulesIdRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/certificate': typeof CertificateRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/portfolio': typeof PortfolioRoute
   '/progress': typeof ProgressRoute
   '/modules/$id': typeof ModulesIdRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/certificate': typeof CertificateRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/portfolio': typeof PortfolioRoute
   '/progress': typeof ProgressRoute
   '/modules/$id': typeof ModulesIdRoute
 }
@@ -69,15 +78,23 @@ export interface FileRouteTypes {
     | '/'
     | '/certificate'
     | '/leaderboard'
+    | '/portfolio'
     | '/progress'
     | '/modules/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/certificate' | '/leaderboard' | '/progress' | '/modules/$id'
+  to:
+    | '/'
+    | '/certificate'
+    | '/leaderboard'
+    | '/portfolio'
+    | '/progress'
+    | '/modules/$id'
   id:
     | '__root__'
     | '/'
     | '/certificate'
     | '/leaderboard'
+    | '/portfolio'
     | '/progress'
     | '/modules/$id'
   fileRoutesById: FileRoutesById
@@ -86,6 +103,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CertificateRoute: typeof CertificateRoute
   LeaderboardRoute: typeof LeaderboardRoute
+  PortfolioRoute: typeof PortfolioRoute
   ProgressRoute: typeof ProgressRoute
   ModulesIdRoute: typeof ModulesIdRoute
 }
@@ -97,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/progress'
       fullPath: '/progress'
       preLoaderRoute: typeof ProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboard': {
@@ -134,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CertificateRoute: CertificateRoute,
   LeaderboardRoute: LeaderboardRoute,
+  PortfolioRoute: PortfolioRoute,
   ProgressRoute: ProgressRoute,
   ModulesIdRoute: ModulesIdRoute,
 }
